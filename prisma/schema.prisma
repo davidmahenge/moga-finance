@@ -1,0 +1,142 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model AdminUser {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  name      String
+  role      String   @default("OFFICER")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Customer {
+  id               String   @id @default(cuid())
+  firstName        String
+  lastName         String
+  dateOfBirth      DateTime
+  nationalId       String   @unique
+  email            String   @unique
+  phone            String
+  address          String
+  city             String
+  employmentStatus String
+  employerName     String?
+  monthlyIncome    Float?
+  loans            Loan[]
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
+
+model Loan {
+  id                 String              @id @default(cuid())
+  loanNumber         String              @unique
+  customerId         String
+  customer           Customer            @relation(fields: [customerId], references: [id])
+  principalAmount    Float
+  interestRate       Float
+  termMonths         Int
+  purpose            String
+  disbursementDate   DateTime?
+  maturityDate       DateTime?
+  status             String              @default("PENDING")
+  monthlyPayment     Float?
+  totalInterest      Float?
+  outstandingBalance Float?
+  documents          Document[]
+  payments           Payment[]
+  collaterals        Collateral[]
+  alertLogs          AlertLog[]
+  amortization       AmortizationEntry[]
+  approvedBy         String?
+  approvedAt         DateTime?
+  rejectionReason    String?
+  notes              String?
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+}
+
+model AmortizationEntry {
+  id               String    @id @default(cuid())
+  loanId           String
+  loan             Loan      @relation(fields: [loanId], references: [id])
+  installmentNo    Int
+  dueDate          DateTime
+  principalDue     Float
+  interestDue      Float
+  totalDue         Float
+  remainingBalance Float
+  isPaid           Boolean   @default(false)
+  paidAt           DateTime?
+
+  @@index([loanId])
+  @@index([dueDate])
+}
+
+model Document {
+  id            String    @id @default(cuid())
+  loanId        String
+  loan          Loan      @relation(fields: [loanId], references: [id])
+  type          String
+  fileName      String
+  filePath      String
+  fileSize      Int
+  mimeType      String
+  status        String    @default("PENDING")
+  verifiedBy    String?
+  verifiedAt    DateTime?
+  rejectionNote String?
+  uploadedAt    DateTime  @default(now())
+}
+
+model Payment {
+  id               String   @id @default(cuid())
+  loanId           String
+  loan             Loan     @relation(fields: [loanId], references: [id])
+  receiptNumber    String   @unique
+  amount           Float
+  principalPortion Float
+  interestPortion  Float
+  penaltyAmount    Float    @default(0)
+  paymentDate      DateTime
+  paymentMethod    String
+  referenceNumber  String?
+  notes            String?
+  recordedBy       String?
+  createdAt        DateTime @default(now())
+}
+
+model Collateral {
+  id             String   @id @default(cuid())
+  loanId         String
+  loan           Loan     @relation(fields: [loanId], references: [id])
+  type           String
+  description    String
+  estimatedValue Float
+  valuationDate  DateTime
+  valuedBy       String?
+  location       String?
+  notes          String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model AlertLog {
+  id             String   @id @default(cuid())
+  loanId         String?
+  loan           Loan?    @relation(fields: [loanId], references: [id])
+  recipientEmail String
+  recipientName  String
+  subject        String
+  type           String
+  status         String   @default("SENT")
+  errorMessage   String?
+  sentAt         DateTime @default(now())
+}
